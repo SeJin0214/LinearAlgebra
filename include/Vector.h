@@ -10,10 +10,10 @@
 using std::ostream;
 using std::vector;
 
-template <typename T, size_t N>
+template <typename T, uint32_t N>
 struct Vector
 {
-    static constexpr size_t SIZE = N;
+    static constexpr uint32_t SIZE = N;
     static_assert(N >= 0);
 
     T v[N];
@@ -22,6 +22,8 @@ struct Vector
     static Vector sub(const Vector& l, const Vector& r);
     static Vector mul(const Vector v, const float k);
     static Vector linearCombination(const vector<Vector>& vectors, const vector<float>& scalars);
+
+    // 복소수할 때는 특수 템플릿화 
     static T dot(const Vector& l, const Vector& r);
     static Vector cross(const Vector& l, const Vector& r);
     static float cos(const Vector& l, const Vector& r);
@@ -41,7 +43,7 @@ struct Vector
     Vector& operator*=(const float rhs);
 };
 
-template <typename T, size_t N>
+template <typename T, uint32_t N>
 Vector<T, N> Vector<T, N>::add(const Vector& l, const Vector& r)
 {
     static_assert(l.SIZE == r.SIZE);
@@ -53,7 +55,7 @@ Vector<T, N> Vector<T, N>::add(const Vector& l, const Vector& r)
     return result;
 }
 
-template <typename T, size_t N>
+template <typename T, uint32_t N>
 Vector<T, N> Vector<T, N>::sub(const Vector& l, const Vector& r)
 {
     static_assert(l.SIZE == r.SIZE);
@@ -65,7 +67,7 @@ Vector<T, N> Vector<T, N>::sub(const Vector& l, const Vector& r)
     return result;
 }
 
-template <typename T, size_t N>
+template <typename T, uint32_t N>
 Vector<T, N> Vector<T, N>::mul(const Vector v, const float k)
 {
     Vector<T, N> result;
@@ -76,13 +78,12 @@ Vector<T, N> Vector<T, N>::mul(const Vector v, const float k)
     return result;
 }
 
-template <typename T, size_t N>
+template <typename T, uint32_t N>
 bool Vector<T, N>::operator==(const Vector& rhs) const
 {
-    constexpr double epsilon = 1e-6;
     for (uint32_t i = 0; i < N; ++i)
     {
-        if (ABS(static_cast<double>(v[i] - rhs.v[i])) > epsilon)
+        if (ABS(static_cast<double>(v[i] - rhs.v[i])) > EPSILON)
         {
             return false;
         }
@@ -90,7 +91,7 @@ bool Vector<T, N>::operator==(const Vector& rhs) const
     return true;
 }
 
-template <typename T, size_t N>
+template <typename T, uint32_t N>
 Vector<T, N> Vector<T, N>::operator+(const Vector& rhs) const
 {
     static_assert(SIZE == rhs.SIZE);
@@ -98,7 +99,7 @@ Vector<T, N> Vector<T, N>::operator+(const Vector& rhs) const
     return add(*this, rhs);
 }
 
-template <typename T, size_t N>
+template <typename T, uint32_t N>
 Vector<T, N> Vector<T, N>::operator-(const Vector& rhs) const
 {
     static_assert(SIZE == rhs.SIZE);
@@ -106,13 +107,13 @@ Vector<T, N> Vector<T, N>::operator-(const Vector& rhs) const
     return sub(*this, rhs);
 }
 
-template <typename T, size_t N>
+template <typename T, uint32_t N>
 Vector<T, N> Vector<T, N>::operator*(const float rhs) const
 {
     return mul(*this, rhs);
 }
 
-template <typename T, size_t N>
+template <typename T, uint32_t N>
 Vector<T, N>& Vector<T, N>::operator+=(const Vector& rhs)
 {
     static_assert(SIZE == rhs.SIZE);
@@ -123,7 +124,7 @@ Vector<T, N>& Vector<T, N>::operator+=(const Vector& rhs)
     return *this;
 }
 
-template <typename T, size_t N>
+template <typename T, uint32_t N>
 Vector<T, N>& Vector<T, N>::operator-=(const Vector& rhs)
 {
     static_assert(SIZE == rhs.SIZE);
@@ -134,7 +135,7 @@ Vector<T, N>& Vector<T, N>::operator-=(const Vector& rhs)
     return *this;
 }
 
-template <typename T, size_t N>
+template <typename T, uint32_t N>
 Vector<T, N>& Vector<T, N>::operator*=(const float rhs)
 {
     for (uint32_t i = 0; i < N; ++i)
@@ -144,7 +145,7 @@ Vector<T, N>& Vector<T, N>::operator*=(const float rhs)
     return *this;
 }
 
-template <typename T, size_t N>
+template <typename T, uint32_t N>
 Vector<T, N> Vector<T, N>::linearCombination(const vector<Vector>& vectors, const vector<float>& scalars)
 {
     assert(vectors.size() == scalars.size());
@@ -160,7 +161,7 @@ Vector<T, N> Vector<T, N>::linearCombination(const vector<Vector>& vectors, cons
     return result;
 }
 
-template <typename T, size_t N>
+template <typename T, uint32_t N>
 T Vector<T, N>::dot(const Vector& l, const Vector& r)
 {
     static_assert(l.SIZE == r.SIZE);
@@ -172,7 +173,7 @@ T Vector<T, N>::dot(const Vector& l, const Vector& r)
     return result;
 }
 
-template <typename T, size_t N>
+template <typename T, uint32_t N>
 T Vector<T, N>::norm1() const
 {
     // 맨해튼 거리 합
@@ -184,7 +185,7 @@ T Vector<T, N>::norm1() const
     return result;
 }
 
-template <typename T, size_t N>
+template <typename T, uint32_t N>
 T Vector<T, N>::norm2() const
 {
     // 길이 구하기
@@ -196,7 +197,7 @@ T Vector<T, N>::norm2() const
     return std::pow(result, 0.5);
 }
 
-template <typename T, size_t N>
+template <typename T, uint32_t N>
 T Vector<T, N>::normInf() const
 {
     // 성분의 절댓값이 제일 큰 거 반환
@@ -208,7 +209,7 @@ T Vector<T, N>::normInf() const
     return result;
 }
 
-template <typename T, size_t N>
+template <typename T, uint32_t N>
 float Vector<T, N>::cos(const Vector& l, const Vector& r)
 {
     float length1 = l.norm2();
@@ -219,7 +220,7 @@ float Vector<T, N>::cos(const Vector& l, const Vector& r)
     return dotValue / (length1 * length2);
 }
 
-template <typename T, size_t N>
+template <typename T, uint32_t N>
 Vector<T, N> Vector<T, N>::cross(const Vector& l, const Vector& r)
 {
     static_assert(l.SIZE == 3 && r.SIZE == 3);
@@ -232,7 +233,7 @@ Vector<T, N> Vector<T, N>::cross(const Vector& l, const Vector& r)
 }
 
 
-template <typename T, size_t N>
+template <typename T, uint32_t N>
 ostream& operator<<(ostream& os, const Vector<T, N>& v)
 {
     os << "(";
