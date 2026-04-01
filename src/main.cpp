@@ -17,6 +17,7 @@ void testEx10();
 void testEx11();
 void testEx12();
 void testEx13();
+void testEx14();
 void printEntry(const char* str);
 void printSubEntry(const char* str);
 
@@ -36,6 +37,8 @@ int main(void)
     testEx11();
     testEx12();
     testEx13();
+    testEx14();
+
     return 0;
 }
 
@@ -936,8 +939,29 @@ void testEx13()
     std::cout << "Ex13 assertions passed\n";
 }
 
+void testEx14()
+{
+    printEntry("   Ex14 perspective   ");
 
+    printSubEntry("projection matrix");
+    const float fov = 3.14159265358979323846f / 2.f;
+    Matrix<float, 4, 4> projection = perspective<float>(fov, 1.f, 1.f, 10.f);
+    std::cout << projection << std::endl;
+    assert((projection == Matrix<float, 4, 4>{
+        1.f, 0.f, 0.f, 0.f,
+        0.f, 1.f, 0.f, 0.f,
+        0.f, 0.f, -11.f / 9.f, -20.f / 9.f,
+        0.f, 0.f, -1.f, 0.f
+    }));
 
+    printSubEntry("project point");
+    Vector<float, 4> point{0.f, 0.f, -5.f, 1.f};
+    Vector<float, 4> clip = projection * point;
+    std::cout << clip;
+    assert((clip == Vector<float, 4>{0.f, 0.f, 35.f / 9.f, 5.f}));
+
+    std::cout << "Ex14 assertions passed\n";
+}
 
 
 

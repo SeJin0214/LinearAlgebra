@@ -6,6 +6,7 @@
 #include <ostream>
 #include <cmath>
 #include <optional>
+#include <type_traits>
 #include "MyMath.h"
 #include "Vector.h"
 
@@ -526,3 +527,46 @@ ostream& operator<<(ostream& os, const Matrix<T, N, M>& m)
     return os;
 }
 
+template <typename T>
+Matrix<T, 4, 4> perspective(const float fovRadian, const float aspectRatio, const float nearZ, const float farZ)
+{
+    static_assert(std::is_floating_point_v<T>, "perspective requires a floating-point matrix type");
+    assert(fovRadian > EPSILON);
+    assert(aspectRatio > EPSILON);
+    assert(nearZ > EPSILON);
+    assert(farZ > nearZ);
+
+    const T tanHalfFov = static_cast<T>(std::tan(fovRadian * 0.5f));
+    assert(ABS(tanHalfFov) > EPSILON);
+    Matrix<T, 4, 4> result{};
+    result.set(0, 0, static_cast<T>(1) / aspectRatio * tanHalfFov);
+    result.set(1, 1, static_cast<T>(1) / tanHalfFov);
+
+
+    // Az(스케일) + B(이동) n == near, f == far
+    // (Az + B) / z,  z로 나눠서 비선형성을 보장함
+    // 카메라 전방(z)이 음수, 다시 말해 증가하는 방향이 음수다. OpenGL은 멀수록 -10, -100이 됨
+    // 전방으로 갈수록 near(-1) 에서 far(1)가 되도록 해야 한다. 얘는 양수다. 
+    // 양수로 보장하고 싶은 것은 -부호를 붙여 양수로 (-z). -10 -> -100이 10 -> 100이 되도록
+
+    // (Az + B) / -z,  near == -1, far == 1
+
+    // Az에 z가 음수가 될수록 증가하는 방향인데, near를 그냥 넣어버리면 오히려 Far보다 멀리 있는 것으로 되어버린다.
+    // A(-n) + B / -(-n) = -1  -> -An + B = -n
+    // A(-f) + B / -(-f) = 1   -> -Af + B = f
+
+    // 둘이 연립방정식 하기
+    // -An + B = -n
+    // -Af + B = f
+    // A = (-n - f) / (f - n) -> A = - (f + n) / (f - n)
+    // A를 대입해서 B 구하기
+    // B = -n - n(f + n) / (f - n)
+    // B = -n(f - n) + -n(f + n) / (f - n)
+    // B = -2nf / (f - n)
+    result.set(2, 2, static_cast<T>(-(farZ + nearZ) / (farZ - nearZ)));
+    result.set(2, 3, static_cast<T>(-(2.f * farZ * nearZ) / (farZ - nearZ)));
+
+    // Perspective Divide에 사용할 w 값이 양수가 되도록 -1을 넣음
+    result.set(3, 2, static_cast<T>(-1));
+    return result;
+}
