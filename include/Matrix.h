@@ -17,7 +17,7 @@ struct Matrix
 {
     static constexpr uint32_t ROW_COUNT = N;
     static constexpr uint32_t COLUMN_COUNT = M;
-    static_assert(ROW_COUNT >= 0 && COLUMN_COUNT >= 0);
+    static_assert(ROW_COUNT > 0 && COLUMN_COUNT > 0);
 
     T m[N * M];
 
@@ -76,7 +76,7 @@ Matrix<T, N, M> Matrix<T, N, M>::add(const Matrix& l, const Matrix& r)
     {
         for (uint32_t j = 0; j < COLUMN_COUNT; ++j)
         {
-            result.m[COLUMN_COUNT * i + j] = l.m[COLUMN_COUNT * i + j] + r.m[COLUMN_COUNT * i + j];
+            result.set(i, j, l.at(i, j) + r.at(i, j));
         }
     }
     return result;
@@ -92,7 +92,7 @@ Matrix<T, N, M> Matrix<T, N, M>::sub(const Matrix& l, const Matrix& r)
     {
         for (uint32_t j = 0; j < COLUMN_COUNT; ++j)
         {
-            result.m[COLUMN_COUNT * i + j] = l.m[COLUMN_COUNT * i + j] - r.m[COLUMN_COUNT * i + j];
+            result.set(i, j, l.at(i, j) - r.at(i, j));
         }
     }
     return result;
@@ -106,7 +106,7 @@ Matrix<T, N, M> Matrix<T, N, M>::mul(const Matrix& m, const float k)
     {
         for (uint32_t j = 0; j < COLUMN_COUNT; ++j)
         {
-            result.m[COLUMN_COUNT * i + j] = m.m[COLUMN_COUNT * i + j] * k;
+            result.set(i, j, m.at(i, j) * k);
         }
     }
     return result;
@@ -120,7 +120,7 @@ Vector<T, N> Matrix<T, N, M>::mul(const Matrix& m, const Vector<T, M>& v)
     {
         for (uint32_t j = 0; j < m.COLUMN_COUNT; ++j)
         {
-            result.v[i] = std::fma(m.m[m.COLUMN_COUNT * i + j], v.v[j], result.v[i]);
+            result.v[i] = std::fma(m.at(i, j), v.v[j], result.v[i]);
         }
     }
     return result;
@@ -140,7 +140,7 @@ Matrix<T, N, P> Matrix<T, N, M>::mul(const Matrix<T, N, M>& l, const Matrix<T, M
         {
             for (uint32_t k = 0; k < l.COLUMN_COUNT; ++k)
             {
-                result.m[r.COLUMN_COUNT * i + j] = std::fma(l.m[l.COLUMN_COUNT * i + k], r.m[r.COLUMN_COUNT * k + j], result.m[r.COLUMN_COUNT * i + j]);
+                result.set(i, j, std::fma(l.at(i, k), r.at(k, j), result.at(i, j)));
             }
         }
     }
@@ -153,11 +153,14 @@ Matrix<T, N, P> Matrix<T, N, M>::mul(const Matrix<T, N, M>& l, const Matrix<T, M
 template <typename T, uint32_t N, uint32_t M>
 bool Matrix<T, N, M>::operator==(const Matrix& rhs) const
 {
-    for (uint32_t i = 0; i < ROW_COUNT * COLUMN_COUNT; ++i)
+    for (uint32_t i = 0; i < ROW_COUNT; ++i)
     {
-        if (ABS(static_cast<double>(m[i] - rhs.m[i])) > EPSILON)
+        for (uint32_t j = 0; j < COLUMN_COUNT; ++j)
         {
-            return false;
+            if (ABS(static_cast<double>(at(i, j) - rhs.at(i, j))) > EPSILON)
+            {
+                return false;
+            }
         }
     }
     return true;
@@ -207,7 +210,7 @@ Matrix<T, N, M>& Matrix<T, N, M>::operator+=(const Matrix& rhs)
     {
         for (uint32_t j = 0; j < COLUMN_COUNT; ++j)
         {
-            m[COLUMN_COUNT * i + j] += rhs.m[COLUMN_COUNT * i + j];
+            set(i, j, at(i, j) + rhs.at(i, j));
         }
     }
     return *this;
@@ -222,7 +225,7 @@ Matrix<T, N, M>& Matrix<T, N, M>::operator-=(const Matrix& rhs)
     {
         for (uint32_t j = 0; j < COLUMN_COUNT; ++j)
         {
-            m[COLUMN_COUNT * i + j] -= rhs.m[COLUMN_COUNT * i + j];
+            set(i, j, at(i, j) - rhs.at(i, j));
         }
     }
     return *this;
@@ -235,7 +238,7 @@ Matrix<T, N, M>& Matrix<T, N, M>::operator*=(const float rhs)
     {
         for (uint32_t j = 0; j < COLUMN_COUNT; ++j)
         {
-            m[COLUMN_COUNT * i + j] *= rhs;
+            set(i, j, at(i, j) * rhs);
         }
     }
     return *this;
@@ -248,7 +251,7 @@ T Matrix<T, N, M>::trace() const
     T result{};
     for (uint32_t i = 0; i < ROW_COUNT; ++i)
     {
-        result += m[COLUMN_COUNT * i + i];
+        result += at(i, i);
     }
     return result;
 }
@@ -262,7 +265,7 @@ Matrix<T, M, N> Matrix<T, N, M>::transpose() const
         for (uint32_t j = 0; j < COLUMN_COUNT; ++j)
         {
             // 거꾸로 넣기 
-            result.m[ROW_COUNT * j + i] = m[COLUMN_COUNT * i + j];
+            result.set(j, i, at(i, j));
         }
     }
     // 1 2 3
@@ -520,26 +523,25 @@ ostream& operator<<(ostream& os, const Matrix<T, N, M>& m)
         os << "[";
         for (uint32_t j = 0; j < m.COLUMN_COUNT - 1; ++j)
         {
-            os << m.m[m.COLUMN_COUNT * i + j] << ", ";
+            os << m.at(i, j) << ", ";
         }
-        os << m.m[m.COLUMN_COUNT * i + m.COLUMN_COUNT - 1] << "]" << std::endl;
+        os << m.at(i, m.COLUMN_COUNT - 1) << "]" << std::endl;
     }
     return os;
 }
 
 template <typename T>
-Matrix<T, 4, 4> perspective(const float fovRadian, const float aspectRatio, const float nearZ, const float farZ)
+std::optional<Matrix<T, 4, 4>> perspective(const float fovRadian, const float aspectRatio, const float nearZ, const float farZ)
 {
     static_assert(std::is_floating_point_v<T>, "perspective requires a floating-point matrix type");
-    assert(fovRadian > EPSILON);
-    assert(aspectRatio > EPSILON);
-    assert(nearZ > EPSILON);
-    assert(farZ > nearZ);
 
     const T tanHalfFov = static_cast<T>(std::tan(fovRadian * 0.5f));
-    assert(ABS(tanHalfFov) > EPSILON);
+    if (fovRadian <= EPSILON || aspectRatio <= EPSILON || nearZ <= EPSILON || farZ - nearZ <= EPSILON || ABS(tanHalfFov) <= EPSILON)
+    {
+        return std::nullopt;
+    }
     Matrix<T, 4, 4> result{};
-    result.set(0, 0, static_cast<T>(1) / aspectRatio * tanHalfFov);
+    result.set(0, 0, static_cast<T>(1) / (aspectRatio * tanHalfFov));
     result.set(1, 1, static_cast<T>(1) / tanHalfFov);
 
 
@@ -549,22 +551,23 @@ Matrix<T, 4, 4> perspective(const float fovRadian, const float aspectRatio, cons
     // 전방으로 갈수록 near(-1) 에서 far(1)가 되도록 해야 한다. 얘는 양수다. 
     // 양수로 보장하고 싶은 것은 -부호를 붙여 양수로 (-z). -10 -> -100이 10 -> 100이 되도록
 
-    // (Az + B) / -z,  near == -1, far == 1
+    // (Az + B) / -z,  near == 0, far == 1
 
     // Az에 z가 음수가 될수록 증가하는 방향인데, near를 그냥 넣어버리면 오히려 Far보다 멀리 있는 것으로 되어버린다.
-    // A(-n) + B / -(-n) = -1  -> -An + B = -n
+    // A(-n) + B / -(-n) = 0  -> -An + B = 0
     // A(-f) + B / -(-f) = 1   -> -Af + B = f
 
     // 둘이 연립방정식 하기
-    // -An + B = -n
+    // -An + B = 0
     // -Af + B = f
-    // A = (-n - f) / (f - n) -> A = - (f + n) / (f - n)
+    // -An + B - (-Af + B) = -f
+    // A = -f / (f - n)
+
     // A를 대입해서 B 구하기
-    // B = -n - n(f + n) / (f - n)
-    // B = -n(f - n) + -n(f + n) / (f - n)
-    // B = -2nf / (f - n)
-    result.set(2, 2, static_cast<T>(-(farZ + nearZ) / (farZ - nearZ)));
-    result.set(2, 3, static_cast<T>(-(2.f * farZ * nearZ) / (farZ - nearZ)));
+    // fn / (f - n) + B = 0
+    // B = -fn / (f - n)
+    result.set(2, 2, static_cast<T>(-farZ / (farZ - nearZ)));
+    result.set(2, 3, static_cast<T>(-(farZ * nearZ) / (farZ - nearZ)));
 
     // Perspective Divide에 사용할 w 값이 양수가 되도록 -1을 넣음
     result.set(3, 2, static_cast<T>(-1));

@@ -942,15 +942,18 @@ void testEx13()
 void testEx14()
 {
     printEntry("   Ex14 perspective   ");
+    constexpr float epsilon = 1e-6f;
 
     printSubEntry("projection matrix");
     const float fov = 3.14159265358979323846f / 2.f;
-    Matrix<float, 4, 4> projection = perspective<float>(fov, 1.f, 1.f, 10.f);
+    std::optional<Matrix<float, 4, 4>> projectionResult = perspective<float>(fov, 1.f, 1.f, 10.f);
+    assert(projectionResult.has_value());
+    Matrix<float, 4, 4> projection = *projectionResult;
     std::cout << projection << std::endl;
     assert((projection == Matrix<float, 4, 4>{
         1.f, 0.f, 0.f, 0.f,
         0.f, 1.f, 0.f, 0.f,
-        0.f, 0.f, -11.f / 9.f, -20.f / 9.f,
+        0.f, 0.f, -10.f / 9.f, -10.f / 9.f,
         0.f, 0.f, -1.f, 0.f
     }));
 
@@ -958,15 +961,54 @@ void testEx14()
     Vector<float, 4> point{0.f, 0.f, -5.f, 1.f};
     Vector<float, 4> clip = projection * point;
     std::cout << clip;
-    assert((clip == Vector<float, 4>{0.f, 0.f, 35.f / 9.f, 5.f}));
+    assert((clip == Vector<float, 4>{0.f, 0.f, 40.f / 9.f, 5.f}));
+
+    printSubEntry("near/far plane map to NDC bounds");
+    Vector<float, 4> nearPoint{0.f, 0.f, -1.f, 1.f};
+    Vector<float, 4> farPoint{0.f, 0.f, -10.f, 1.f};
+    Vector<float, 4> nearClip = projection * nearPoint;
+    Vector<float, 4> farClip = projection * farPoint;
+    std::cout << "near clip = " << nearClip;
+    std::cout << "far clip = " << farClip;
+    assert(ABS(nearClip.v[2] / nearClip.v[3]) <= epsilon);
+    assert(ABS(farClip.v[2] / farClip.v[3] - 1.f) <= epsilon);
+
+    printSubEntry("aspect ratio changes horizontal scale");
+    std::optional<Matrix<float, 4, 4>> widescreenResult = perspective<float>(fov, 2.f, 1.f, 10.f);
+    assert(widescreenResult.has_value());
+    Matrix<float, 4, 4> widescreenProjection = *widescreenResult;
+    std::cout << widescreenProjection << std::endl;
+    assert(ABS(widescreenProjection.at(0, 0) - 0.5f) <= epsilon);
+    assert(ABS(widescreenProjection.at(1, 1) - 1.f) <= epsilon);
+
+    Vector<float, 4> widescreenPoint{2.f, 1.f, -2.f, 1.f};
+    Vector<float, 4> widescreenClip = widescreenProjection * widescreenPoint;
+    std::cout << "widescreen clip = " << widescreenClip;
+    assert(ABS(widescreenClip.v[0] / widescreenClip.v[3] - 0.5f) <= epsilon);
+    assert(ABS(widescreenClip.v[1] / widescreenClip.v[3] - 0.5f) <= epsilon);
+
+    printSubEntry("portrait aspect ratio widens horizontal NDC range");
+    std::optional<Matrix<float, 4, 4>> portraitResult = perspective<float>(fov, 0.5f, 1.f, 10.f);
+    assert(portraitResult.has_value());
+    Matrix<float, 4, 4> portraitProjection = *portraitResult;
+    std::cout << portraitProjection << std::endl;
+    assert(ABS(portraitProjection.at(0, 0) - 2.f) <= epsilon);
+    assert(ABS(portraitProjection.at(1, 1) - 1.f) <= epsilon);
+
+    Vector<float, 4> portraitPoint{0.5f, 1.f, -2.f, 1.f};
+    Vector<float, 4> portraitClip = portraitProjection * portraitPoint;
+    std::cout << "portrait clip = " << portraitClip;
+    assert(ABS(portraitClip.v[0] / portraitClip.v[3] - 0.5f) <= epsilon);
+    assert(ABS(portraitClip.v[1] / portraitClip.v[3] - 0.5f) <= epsilon);
+
+    printSubEntry("invalid inputs");
+    assert(!perspective<float>(0.f, 1.f, 1.f, 10.f).has_value());
+    assert(!perspective<float>(fov, 0.f, 1.f, 10.f).has_value());
+    assert(!perspective<float>(fov, 1.f, 0.f, 10.f).has_value());
+    assert(!perspective<float>(fov, 1.f, 10.f, 10.f).has_value());
 
     std::cout << "Ex14 assertions passed\n";
 }
-
-
-
-
-
 
 
 

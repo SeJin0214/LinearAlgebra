@@ -1,6 +1,6 @@
 NAME = matrix
 CXX = c++
-FLAGS= -Wall -Wextra -Werror
+FLAGS= -Wall -Wextra -Werror -std=c++17
 
 RM = rm
 RM_FLAGS = -rf

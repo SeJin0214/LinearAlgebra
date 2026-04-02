@@ -14,7 +14,7 @@ template <typename T, uint32_t N>
 struct Vector
 {
     static constexpr uint32_t SIZE = N;
-    static_assert(N >= 0);
+    static_assert(N > 0);
 
     T v[N];
 
@@ -214,7 +214,10 @@ float Vector<T, N>::cos(const Vector& l, const Vector& r)
 {
     float length1 = l.norm2();
     float length2 = r.norm2();
-    assert(length1 > 0.f && length2 > 0.f);
+    if (length1 < EPSILON || length2 < EPSILON)
+    {
+        return 0.f;
+    }
 
     float dotValue = Vector<T, N>::dot(l, r);
     return dotValue / (length1 * length2);
